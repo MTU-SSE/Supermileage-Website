@@ -1,4 +1,24 @@
+# How To Change The Website
+
+**Please Please Please email John (john@umbriac.com) with any questions you may have! He will be happy to help, or even make the change for you!**
+
+Editing the SSE website is simple! As soon as a change is made to a file in this repository on the main branch (what you see by default), that edit will be reflected on the public website. Please keep this in mind. Again,
+
+***EDITS MADE TO FILES HERE WILL SHOW UP ON THE PUBLIC WEBSITE IMMEDIATELY***
+
+You can edit a file within Github using the built in editor. I recommend this for quick/easy changes like wording or uploading a new picture. Because you can't preview how it will look, you will have to be careful.
+
+You can also clone the repository (download it to your computer) and push the changes back. If you have not used git before, I recommend downloading the Github app, and using their helpful user interface. The advantage of getting the code on your computer is that you can see what your changes will look like before you apply them!
+
+## John you beautiful human, how did you get changes here to automatically apply to the website?
+
+Thank you, and great question! There is a webhook in `public_html` on the computer running the website that gets run everytime a push to this repository occurs. This calls `deploy.sh` which is in `repsitories/Supermileage-Website/` which copies the changes to the folder for the public site.
+
+The "advanced" section of cpanel has a terminal! Very useful :)
+You can access cpanel from the link in the social media account passwords page (different from the main passwords page!).
+
 # Supermileage Website Templating System
+## Important to know if you need to make more structural changes to the website
 
 This website uses a simple, custom templating system powered by JavaScript to reuse common elements like headers and footers across multiple pages. This guide provides a non-technical overview of how it works.
 
