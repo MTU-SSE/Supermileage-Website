@@ -5,6 +5,7 @@
 Editing the SSE website is simple! As soon as a change is made to a file in this repository on the main branch (what you see by default), that edit will be reflected on the public website. Please keep this in mind. Again,
 
 ***EDITS MADE TO FILES HERE WILL SHOW UP ON THE PUBLIC WEBSITE IMMEDIATELY***
+(This is currently broken, bug john to fix it sometime soon)
 
 You can edit a file within Github using the built in editor. I recommend this for quick/easy changes like wording or uploading a new picture. Because you can't preview how it will look, you will have to be careful.
 
