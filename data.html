@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Track Telemetry Dashboard</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Custom scrollbar for a cleaner look */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen font-sans text-slate-800">
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- Header -->
+        <header class="mb-8 flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+            <div class="flex items-center gap-4 mb-4 md:mb-0">
+                <div class="bg-blue-600 p-3 rounded-xl">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/></svg>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-900">Track Telemetry</h1>
+                    <p class="text-sm text-slate-500">Lap distance fixed at 2.38 miles</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center">
+                <label for="csvFileInput" class="cursor-pointer bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                    Upload CSV
+                </label>
+                <input type="file" id="csvFileInput" accept=".csv" class="hidden" />
+            </div>
+        </header>
+
+        <!-- Error Message Box (Hidden by default) -->
+        <div id="errorBox" class="hidden bg-red-50 border-l-4 border-red-500 p-4 mb-8 rounded-r-lg shadow-sm">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-red-800">Error parsing file</h3>
+                    <div class="mt-2 text-sm text-red-700" id="errorMessage"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="text-center py-20 bg-white rounded-2xl shadow-sm border border-slate-200">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg>
+            </div>
+            <h3 class="text-lg font-medium text-slate-900">No data loaded</h3>
+            <p class="mt-1 text-slate-500">Upload a CSV file containing lap telemetry to view metrics.</p>
+        </div>
+
+        <!-- Dashboard Content (Hidden until data is loaded) -->
+        <div id="dashboardContent" class="hidden space-y-8">
+            
+            <!-- KPI Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Fastest Lap -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-center">
+                    <div class="flex items-center gap-3 mb-2 text-slate-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <span class="font-medium">Fastest Lap</span>
+                    </div>
+                    <div class="text-3xl font-bold text-slate-900" id="kpiFastestLap">--:--.---</div>
+                    <div class="text-sm text-green-600 mt-1 font-medium" id="kpiFastestLapNum">Lap --</div>
+                </div>
+
+                <!-- Avg Lap Time -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-center">
+                    <div class="flex items-center gap-3 mb-2 text-slate-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12A10 10 0 1 0 12 22a10 10 0 0 0 10-10Z"/><path d="M12 12 8 8"/></svg>
+                        <span class="font-medium">Avg Lap Time</span>
+                    </div>
+                    <div class="text-3xl font-bold text-slate-900" id="kpiAvgLapTime">--:--.---</div>
+                    <div class="text-sm text-slate-500 mt-1" id="kpiTotalTime">Total: --:--</div>
+                </div>
+
+                <!-- Avg Speed -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-center">
+                    <div class="flex items-center gap-3 mb-2 text-slate-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
+                        <span class="font-medium">Avg Speed</span>
+                    </div>
+                    <div class="text-3xl font-bold text-slate-900">
+                        <span id="kpiAvgSpeed">--</span>
+                        <span class="text-lg font-normal text-slate-500">mph</span>
+                    </div>
+                    <div class="text-sm text-slate-500 mt-1">Across all laps</div>
+                </div>
+
+                <!-- Total Distance -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-center">
+                    <div class="flex items-center gap-3 mb-2 text-slate-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        <span class="font-medium">Total Distance</span>
+                    </div>
+                    <div class="text-3xl font-bold text-slate-900">
+                        <span id="kpiDistance">--</span>
+                        <span class="text-lg font-normal text-slate-500">mi</span>
+                    </div>
+                    <div class="text-sm text-slate-500 mt-1" id="kpiLapCount">-- Laps Tracked</div>
+                </div>
+            </div>
+
+            <!-- Chart Section -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <h3 class="text-lg font-bold text-slate-900 mb-4">Performance Overview</h3>
+                <div class="relative h-80 w-full">
+                    <canvas id="lapChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Data Table Section -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="px-6 py-5 border-b border-slate-200 bg-slate-50">
+                    <h3 class="text-lg font-bold text-slate-900">Detailed Lap Times</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Lap</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Start Time</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Lap Time</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Speed (mph)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lapTableBody" class="bg-white divide-y divide-slate-200">
+                            <!-- Rows will be injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Constants
+        const LAP_DISTANCE_MILES = 2.38;
+        let performanceChart = null;
+
+        // DOM Elements
+        const fileInput = document.getElementById('csvFileInput');
+        const errorBox = document.getElementById('errorBox');
+        const errorMessage = document.getElementById('errorMessage');
+        const emptyState = document.getElementById('emptyState');
+        const dashboardContent = document.getElementById('dashboardContent');
+
+        // Event Listeners
+        fileInput.addEventListener('change', handleFileUpload);
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            hideError();
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                processCSV(text);
+            };
+            reader.onerror = function() {
+                showError("Failed to read the file. Please try again.");
+            };
+            reader.readAsText(file);
+        }
+
+        function processCSV(csvText) {
+            try {
+                const lines = csvText.trim().split('\n');
+                if (lines.length < 2) throw new Error("CSV file is empty or missing data rows.");
+
+                const headers = lines[0].split(',').map(h => h.trim());
+                
+                // Find column indices
+                const lapIdx = headers.indexOf('lap_number');
+                const timeIdx = headers.indexOf('unix_timestamp');
+
+                if (lapIdx === -1 || timeIdx === -1) {
+                    throw new Error("CSV is missing required columns: 'lap_number' and/or 'unix_timestamp'.");
+                }
+
+                // First pass: Group timestamps by lap number to find min/max time per lap
+                const lapRanges = {};
+                
+                for (let i = 1; i < lines.length; i++) {
+                    const row = lines[i].split(',');
+                    // Make sure row has enough columns
+                    if (row.length <= Math.max(lapIdx, timeIdx)) continue;
+
+                    const lapNum = parseInt(row[lapIdx], 10);
+                    const timestamp = parseInt(row[timeIdx], 10);
+
+                    if (isNaN(lapNum) || isNaN(timestamp)) continue;
+
+                    if (!lapRanges[lapNum]) {
+                        lapRanges[lapNum] = { min: timestamp, max: timestamp };
+                    } else {
+                        if (timestamp < lapRanges[lapNum].min) lapRanges[lapNum].min = timestamp;
+                        if (timestamp > lapRanges[lapNum].max) lapRanges[lapNum].max = timestamp;
+                    }
+                }
+
+                // Second pass: Calculate actual lap duration
+                // Lap duration = Start of next lap - Start of current lap
+                // (For the last lap, use max timestamp - min timestamp)
+                const lapNumbers = Object.keys(lapRanges).map(Number).sort((a, b) => a - b);
+                const finalLaps = [];
+
+                for (let i = 0; i < lapNumbers.length; i++) {
+                    const lap = lapNumbers[i];
+                    const currentStart = lapRanges[lap].min;
+                    let durationMs = 0;
+
+                    if (i < lapNumbers.length - 1) {
+                        const nextLapStart = lapRanges[lapNumbers[i+1]].min;
+                        durationMs = nextLapStart - currentStart;
+                    } else {
+                        // Last lap processing
+                        durationMs = lapRanges[lap].max - currentStart;
+                    }
+
+                    // Ignore faulty laps (like those with 0ms duration)
+                    if (durationMs > 0) {
+                        const hours = durationMs / (1000 * 60 * 60);
+                        const mph = LAP_DISTANCE_MILES / hours;
+                        
+                        finalLaps.push({
+                            lapNumber: lap,
+                            startTime: currentStart,
+                            durationMs: durationMs,
+                            speed: mph
+                        });
+                    }
+                }
+
+                if (finalLaps.length === 0) {
+                    throw new Error("No valid lap data found after processing.");
+                }
+
+                updateDashboard(finalLaps);
+
+            } catch (err) {
+                showError(err.message);
+                console.error(err);
+            }
+            
+            // Reset file input so same file can be uploaded again if needed
+            fileInput.value = '';
+        }
+
+        function updateDashboard(laps) {
+            // Show dashboard, hide empty state
+            emptyState.classList.add('hidden');
+            dashboardContent.classList.remove('hidden');
+
+            // --- Calculate Aggregate Metrics ---
+            let totalMs = 0;
+            let fastestLap = laps[0];
+
+            laps.forEach(lap => {
+                totalMs += lap.durationMs;
+                if (lap.durationMs < fastestLap.durationMs) {
+                    fastestLap = lap;
+                }
+            });
+
+            const avgLapMs = totalMs / laps.length;
+            const totalHours = totalMs / (1000 * 60 * 60);
+            const totalDistance = laps.length * LAP_DISTANCE_MILES;
+            const overallAvgSpeed = totalDistance / totalHours;
+
+            // --- Update KPI Cards ---
+            document.getElementById('kpiFastestLap').innerText = formatLapTime(fastestLap.durationMs);
+            document.getElementById('kpiFastestLapNum').innerText = `Lap ${fastestLap.lapNumber}`;
+            
+            document.getElementById('kpiAvgLapTime').innerText = formatLapTime(avgLapMs);
+            document.getElementById('kpiTotalTime').innerText = `Total: ${formatTotalTime(totalMs)}`;
+            
+            document.getElementById('kpiAvgSpeed').innerText = overallAvgSpeed.toFixed(1);
+            
+            document.getElementById('kpiDistance').innerText = totalDistance.toFixed(2);
+            document.getElementById('kpiLapCount').innerText = `${laps.length} Laps Tracked`;
+
+            // --- Update Table ---
+            const tbody = document.getElementById('lapTableBody');
+            tbody.innerHTML = ''; // clear existing
+            
+            laps.forEach(lap => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition-colors";
+                
+                // Highlight fastest lap
+                const isFastest = lap.lapNumber === fastestLap.lapNumber;
+                const lapLabel = isFastest 
+                    ? `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Lap ${lap.lapNumber} <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>`
+                    : `Lap ${lap.lapNumber}`;
+
+                tr.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">${lapLabel}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">${formatTimeOfDay(lap.startTime)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium ${isFastest ? 'text-green-600' : 'text-slate-900'}">${formatLapTime(lap.durationMs)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">${lap.speed.toFixed(2)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // --- Render Chart ---
+            renderChart(laps);
+        }
+
+        function renderChart(laps) {
+            const ctx = document.getElementById('lapChart').getContext('2d');
+            
+            if (performanceChart) {
+                performanceChart.destroy();
+            }
+
+            const labels = laps.map(l => `Lap ${l.lapNumber}`);
+            const lapTimesSec = laps.map(l => l.durationMs / 1000);
+            const speeds = laps.map(l => l.speed.toFixed(1));
+
+            performanceChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Lap Time (Seconds)',
+                            data: lapTimesSec,
+                            backgroundColor: 'rgba(59, 130, 246, 0.7)', // Tailwind Blue 500
+                            borderColor: 'rgb(37, 99, 235)', // Tailwind Blue 600
+                            borderWidth: 1,
+                            borderRadius: 4,
+                            yAxisID: 'y',
+                            order: 2
+                        },
+                        {
+                            label: 'Avg Speed (mph)',
+                            data: speeds,
+                            type: 'line',
+                            backgroundColor: 'rgba(15, 23, 42, 1)', // Tailwind Slate 900
+                            borderColor: 'rgb(15, 23, 42)',
+                            borderWidth: 2,
+                            pointBackgroundColor: 'white',
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            tension: 0.3,
+                            yAxisID: 'y1',
+                            order: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                            padding: 12,
+                            cornerRadius: 8,
+                        },
+                        legend: {
+                            position: 'top',
+                            labels: { usePointStyle: true, boxWidth: 8 }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: { display: true, text: 'Seconds', color: '#64748b' },
+                            grid: { color: '#f1f5f9' }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: { display: true, text: 'Speed (mph)', color: '#64748b' },
+                            grid: { drawOnChartArea: false } // Prevent grid line clash
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- Utility Formatting Functions ---
+        
+        function formatLapTime(ms) {
+            const minutes = Math.floor(ms / 60000);
+            const seconds = Math.floor((ms % 60000) / 1000);
+            const milliseconds = Math.floor(ms % 1000);
+            return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(3, '0')}`;
+        }
+
+        function formatTotalTime(ms) {
+            const totalSeconds = Math.floor(ms / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            
+            if (hours > 0) {
+                return `${hours}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s`;
+            }
+            return `${minutes}m ${seconds.toString().padStart(2, '0')}s`;
+        }
+
+        function formatTimeOfDay(timestamp) {
+            const d = new Date(timestamp);
+            const h = d.getHours().toString().padStart(2, '0');
+            const m = d.getMinutes().toString().padStart(2, '0');
+            const s = d.getSeconds().toString().padStart(2, '0');
+            const ms = d.getMilliseconds().toString().padStart(3, '0');
+            return `${h}:${m}:${s}.${ms}`;
+        }
+
+        function showError(msg) {
+            errorMessage.innerText = msg;
+            errorBox.classList.remove('hidden');
+        }
+
+        function hideError() {
+            errorBox.classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
