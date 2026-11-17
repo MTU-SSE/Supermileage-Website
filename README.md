@@ -13,7 +13,14 @@ You can also clone the repository (download it to your computer) and push the ch
 
 ## John you beautiful human, how did you get changes here to automatically apply to the website?
 
-Thank you, and great question! There is a webhook in `public_html` on the computer running the website that gets run everytime a push to this repository occurs. This calls `deploy.sh` which is in `repsitories/Supermileage-Website/` which copies the changes to the folder for the public site.
+Thank you, and great question! Github sends a message (a "webhook") to `webhook.php` in `public_html` on the computer running the website every time a push to this repository occurs. That file checks the message really came from Github, then runs `deploy.sh`, which downloads the latest version of the main branch and copies it into the folder for the public site.
+
+Where everything lives on the server:
+
+- `~/public_html/webhook.php` - receives the message from Github. It is NOT in this repository, on purpose.
+- `~/deploy/deploy.sh` - does the actual update.
+- `~/deploy/deploy.log` - a record of every update. Look here first if something goes wrong.
+- `~/repositories/Supermileage-Website/` - the server's copy of this repository. Don't edit files here, they get overwritten on every update.
 
 The "advanced" section of cpanel has a terminal! Very useful :)
 You can access cpanel from the link in the social media account passwords page (different from the main passwords page!).
